@@ -1,0 +1,284 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Biosimilars Portal — Approvals Table</title>
+  <style>
+    :root{--bg:#0f1724;--card:#0b1220;--muted:#94a3b8;--accent:#0ea5a4;--accent-2:#6366f1;--glass: rgba(255,255,255,0.04)}
+    *{box-sizing:border-box}
+    body{font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,'Helvetica Neue',Arial; margin:0; background:linear-gradient(180deg,#071022 0%, #07132a 100%); color:#e6eef6}
+    .wrap{max-width:1200px;margin:32px auto;padding:20px}
+    header{display:flex;align-items:center;gap:16px;margin-bottom:20px}
+    .logo{width:56px;height:56px;border-radius:8px;background:linear-gradient(135deg,var(--accent),var(--accent-2));display:flex;align-items:center;justify-content:center;font-weight:700;color:white}
+    h1{font-size:20px;margin:0}
+    p.lead{margin:4px 0 0;color:var(--muted);font-size:13px}
+
+    .controls{display:flex;flex-wrap:wrap;gap:12px;margin:18px 0 22px}
+    .search{flex:1;min-width:220px}
+    input[type="search"],select{width:100%;padding:10px 12px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:var(--glass);color:inherit;outline:none}
+    .btn{background:var(--accent);border:none;color:#042027;padding:10px 12px;border-radius:8px;font-weight:600;cursor:pointer}
+
+    .card{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));border-radius:12px;padding:12px;border:1px solid rgba(255,255,255,0.04)}
+    table{width:100%;border-collapse:collapse;font-size:13px}
+    thead th{position:sticky;top:0;background:linear-gradient(180deg, rgba(7,19,34,0.85), rgba(7,19,34,0.75));backdrop-filter: blur(4px);padding:12px 10px;text-align:left;font-weight:600;border-bottom:1px solid rgba(255,255,255,0.04)}
+    tbody td{padding:10px;border-bottom:1px dashed rgba(255,255,255,0.03);vertical-align:middle}
+    tbody tr:hover{background:rgba(255,255,255,0.015)}
+    .pill{display:inline-block;padding:6px 8px;border-radius:999px;font-size:12px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.02)}
+
+    .meta{color:var(--muted);font-size:12px}
+    .small{font-size:12px;color:var(--muted)}
+
+    .toolbar{display:flex;gap:8px;align-items:center}
+    .pager{display:flex;gap:8px;align-items:center;margin-top:12px}
+    .icon{width:16px;height:16px;display:inline-block}
+
+    /* responsive */
+    @media (max-width:900px){
+      table thead th:nth-child(4),table td:nth-child(4),
+      table thead th:nth-child(5),table td:nth-child(5){display:none}
+    }
+    @media (max-width:600px){
+      header{gap:10px}
+      .controls{flex-direction:column}
+      .logo{width:44px;height:44px}
+    }
+
+    /* details row */
+    .details{padding:12px 14px;background:linear-gradient(180deg, rgba(255,255,255,0.01), transparent);border-left:3px solid rgba(255,255,255,0.02);display:none}
+    .expanded + .details{display:block}
+
+    /* small helper */
+    .muted{color:var(--muted)}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="logo">BS</div>
+      <div>
+        <h1>Biosimilars — Approvals & Launch Table</h1>
+        <p class="lead">Interactive approvals table inspired by CenterForBiosimilars. Search, filter, sort, export.</p>
+      </div>
+    </header>
+
+    <div class="controls">
+      <div class="search">
+        <input id="search" type="search" placeholder="Search by molecule, sponsor, product... (press Enter)" />
+      </div>
+      <div style="width:200px">
+        <select id="filterYear">
+          <option value="all">All years</option>
+          <option value="2025">2025</option>
+          <option value="2024">2024</option>
+          <option value="2023">2023</option>
+          <option value="2022">2022</option>
+        </select>
+      </div>
+      <div style="width:220px">
+        <select id="filterSponsor">
+          <option value="all">All sponsors</option>
+          <option>Amgen</option>
+          <option>Pfizer</option>
+          <option>Biocon</option>
+          <option>Samsung Bioepis</option>
+        </select>
+      </div>
+      <div class="toolbar">
+        <button class="btn" id="resetBtn">Reset</button>
+        <button class="btn" id="exportBtn">Export CSV</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div style="overflow:auto; max-height:62vh;">
+        <table id="approvals">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Reference (Originator)</th>
+              <th>Biosimilar (US)</th>
+              <th>Approval Date</th>
+              <th>Sponsor</th>
+              <th>Interchangeable</th>
+              <th>Launch price vs originator</th>
+              <th>Channel</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- sample rows -->
+            <tr data-year="2024" data-sponsor="Amgen">
+              <td>1</td>
+              <td>Humira (adalimumab)</td>
+              <td>Amjevita &nbsp;<span class="small muted">(low-WAC / high-WAC SKUs)</span></td>
+              <td>2023-01-31</td>
+              <td>Amgen</td>
+              <td class="pill">No</td>
+              <td class="small">-55% / -5% (WAC)</td>
+              <td class="small">Pharmacy</td>
+            </tr>
+
+            <tr data-year="2021" data-sponsor="Biocon">
+              <td>2</td>
+              <td>Lantus (insulin glargine)</td>
+              <td>Semglee</td>
+              <td>2021-07-01</td>
+              <td>Biocon/Viatris</td>
+              <td class="pill">Yes</td>
+              <td class="small">-65% (WAC)</td>
+              <td class="small">Pharmacy</td>
+            </tr>
+
+            <tr data-year="2019" data-sponsor="Pfizer">
+              <td>3</td>
+              <td>Avastin (bevacizumab)</td>
+              <td>Zirabev</td>
+              <td>2019-09-23</td>
+              <td>Pfizer</td>
+              <td class="pill">No</td>
+              <td class="small">-23% (WAC)</td>
+              <td class="small">Medical</td>
+            </tr>
+
+            <tr data-year="2019" data-sponsor="Amgen">
+              <td>4</td>
+              <td>Herceptin (trastuzumab)</td>
+              <td>Kanjinti</td>
+              <td>2019-12-12</td>
+              <td>Amgen/Allergan</td>
+              <td class="pill">No</td>
+              <td class="small">-13% (ASP)</td>
+              <td class="small">Medical</td>
+            </tr>
+
+            <tr data-year="2018" data-sponsor="Teva">
+              <td>5</td>
+              <td>Rituxan (rituximab)</td>
+              <td>Truxima</td>
+              <td>2018-11-15</td>
+              <td>Teva/Celltrion</td>
+              <td class="pill">No</td>
+              <td class="small">-10% (WAC)</td>
+              <td class="small">Medical</td>
+            </tr>
+
+            <!-- add more rows as needed -->
+          </tbody>
+        </table>
+      </div>
+
+      <div class="pager">
+        <div class="small muted">Showing <span id="count">5</span> results</div>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    // Simple client-side filtering, search, CSV export, and row expand
+    const table = document.getElementById('approvals');
+    const tbody = table.querySelector('tbody');
+    const rows = Array.from(tbody.querySelectorAll('tr'));
+
+    const search = document.getElementById('search');
+    const filterYear = document.getElementById('filterYear');
+    const filterSponsor = document.getElementById('filterSponsor');
+    const resetBtn = document.getElementById('resetBtn');
+    const exportBtn = document.getElementById('exportBtn');
+    const countEl = document.getElementById('count');
+
+    function normalize(s){ return (s||'').toString().toLowerCase(); }
+
+    function applyFilters(){
+      const q = normalize(search.value.trim());
+      const year = filterYear.value;
+      const sponsor = normalize(filterSponsor.value);
+      let shown = 0;
+      rows.forEach(r => {
+        const text = normalize(r.innerText);
+        const rowYear = r.dataset.year || '';
+        const rowSponsor = normalize(r.dataset.sponsor || '');
+        const matchQ = q === '' || text.includes(q);
+        const matchYear = year === 'all' || rowYear === year;
+        const matchSponsor = sponsor === 'all' || sponsor === '' || rowSponsor === sponsor;
+        if(matchQ && matchYear && matchSponsor){ r.style.display='table-row'; shown++; } else { r.style.display='none'; r.classList.remove('expanded'); }
+      });
+      countEl.innerText = shown;
+    }
+
+    search.addEventListener('keyup', (e)=>{ if(e.key==='Enter'){ applyFilters(); } });
+    filterYear.addEventListener('change', applyFilters);
+    filterSponsor.addEventListener('change', applyFilters);
+    resetBtn.addEventListener('click', ()=>{ search.value=''; filterYear.value='all'; filterSponsor.value='all'; applyFilters(); });
+
+    // CSV export
+    function exportCSV(){
+      const visibleRows = rows.filter(r=> r.style.display!=='none');
+      const header = ['#','Reference','Biosimilar','Approval Date','Sponsor','Interchangeable','Launch vs Originator','Channel'];
+      const lines = [header.join(',')];
+      visibleRows.forEach(r=>{
+        const cols = Array.from(r.querySelectorAll('td')).map(td=> '"' + td.innerText.replace(/\"/g,'""') + '"');
+        lines.push(cols.join(','));
+      });
+      const blob = new Blob([lines.join('\n')],{type:'text/csv'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = 'biosimilars_export.csv'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+    }
+    exportBtn.addEventListener('click', exportCSV);
+
+    // row click expand -> show details area
+    rows.forEach(r=>{
+      r.addEventListener('click', ()=>{
+        const expanded = r.classList.toggle('expanded');
+        // if details row exists remove it
+        const next = r.nextElementSibling;
+        if(next && next.classList.contains('details')){ next.remove(); }
+        if(expanded){
+          const details = document.createElement('tr'); details.className='details';
+          const td = document.createElement('td'); td.colSpan=8;
+          td.innerHTML = `
+            <div style="display:flex;gap:20px;flex-wrap:wrap">
+              <div style="min-width:200px">
+                <div class="meta">Regulatory Notes</div>
+                <div class="small">FDA approval pathway, interchangeability status, key citation links.</div>
+              </div>
+              <div style="flex:1">
+                <div class="meta">Market Notes</div>
+                <div class="small">Launch strategy, channel-specific price starting point (WAC or ASP), payer contracting notes.</div>
+              </div>
+              <div style="min-width:160px;text-align:right">
+                <div class="meta">Sources</div>
+                <div class="small"><a style="color:var(--accent)" href="#">CenterForBiosimilars</a></div>
+              </div>
+            </div>
+          `;
+          details.appendChild(td);
+          r.parentNode.insertBefore(details, r.nextSibling);
+        }
+      });
+    });
+
+    // initial count
+    applyFilters();
+
+    // simple column sort when clicking header
+    document.querySelectorAll('#approvals thead th').forEach((th,idx)=>{
+      th.style.cursor='pointer';
+      th.addEventListener('click', ()=>{
+        const asc = th.dataset.asc === '1';
+        const sorted = rows.sort((a,b)=>{
+          const aText = a.children[idx].innerText.trim().toLowerCase();
+          const bText = b.children[idx].innerText.trim().toLowerCase();
+          return aText.localeCompare(bText, undefined, {numeric:true});
+        });
+        if(asc) sorted.reverse();
+        // reattach
+        sorted.forEach(r=> tbody.appendChild(r));
+        // toggle asc
+        document.querySelectorAll('#approvals thead th').forEach(h=> h.dataset.asc='0');
+        th.dataset.asc = asc ? '0' : '1';
+      });
+    });
+  </script>
+</body>
+</html>
